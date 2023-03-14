@@ -67,8 +67,25 @@ def load_data_img(args):
 
 def load_amazon_data_img(args):
     df = pd.read_csv(os.path.join(args.data_root, 'TOTAL_typicality_result.csv'))
-    print(df)
-    quit()
+    img_features = np.load('vision_features/amazon_img_detr.npy')
+    source_text=[]
+    target_text=[]
+    for i in range(len(df)):
+        item_a_id = df['item_a_id'][i]
+        item_b_id = df['item_b_id'][i]
+        for j in range(1,4):
+            img_id_a = f'{item_a_id}_{j}'
+            for k in range(1,4):
+                img_id_b = f'{item_b_id}_{k}'
+                if img_id_a in img_features and img_id_b in img_features:
+                    target_text.append(df['assertion'][i])
+                    
+
+    train_df = pd.DataFrame()
+
+    train_df['targets'] = df['assertion']
+
+
 
 
 class ScienceQADatasetStd(Dataset):
