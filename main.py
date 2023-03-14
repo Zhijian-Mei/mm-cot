@@ -89,10 +89,11 @@ def T5Trainer(
         train, test = train_test_split(df, test_size=0.3,random_state=args.seed)
         eval, test = train_test_split(test, test_size=0.5,random_state=args.seed)
         print(train)
-        train.reset_index(drop=True)
+        train = train.reset_index(drop=True)
         print(train)
-        eval.reset_index(drop=True)
-        test.reset_index(drop=True)
+        quit()
+        eval = eval.reset_index(drop=True)
+        test = test.reset_index(drop=True)
         train_set = AmazonQADatasetImg(
             train,
             tokenizer,
