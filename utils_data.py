@@ -175,6 +175,9 @@ class ScienceQADatasetImg(Dataset):
             prompt, target = build_train_pair(problems, qid, args, curr_le_data)
             self.target_text.append(target)
             self.source_text.append(prompt)
+            print(target)
+            print(prompt)
+            quit()
             if str(qid) in name_maps:
                 i_vectors = image_features[int(name_maps[str(qid)])]
                 self.image_ids.append(i_vectors)
