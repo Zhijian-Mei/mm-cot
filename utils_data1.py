@@ -1,4 +1,7 @@
 import os
+from abc import ABC
+
+import pandas as pd
 from torch.utils.data import Dataset
 import os
 import json
@@ -11,7 +14,6 @@ img_shape = {
     "clip": (49, 2048),
     "detr": (100, 256),
 }
-
 
 def load_data_std(args):
     problems = json.load(open(os.path.join(args.data_root, 'scienceqa/problems.json')))
@@ -28,9 +30,8 @@ def load_data_std(args):
     print(f"number of val problems: {len(val_qids)}\n")
     print(f"number of test problems: {len(test_qids)}\n")
 
-    qids = {'train': train_qids, 'val': val_qids, 'test': test_qids}
+    qids = {'train': train_qids, 'val':val_qids,'test':test_qids}
     return problems, qids,
-
 
 def load_data_img(args):
     problems = json.load(open(os.path.join(args.data_root, 'scienceqa/problems.json')))
@@ -61,8 +62,17 @@ def load_data_img(args):
     print(f"number of val problems: {len(val_qids)}\n")
     print(f"number of test problems: {len(test_qids)}\n")
 
-    qids = {'train': train_qids, 'val': val_qids, 'test': test_qids}
+    qids = {'train': train_qids, 'val':val_qids,'test':test_qids}
     return problems, qids, name_maps, image_features
+
+def load_amazon_data_img(args):
+    df = pd.read_csv(os.path.join('data/amazon_train_samples_img.csv'))
+    img_features = np.load('vision_features/amazon_img_detr.npy',allow_pickle=True).item()
+
+    return df,img_features
+
+
+
 
 
 class ScienceQADatasetStd(Dataset):
@@ -74,16 +84,16 @@ class ScienceQADatasetStd(Dataset):
     """
 
     def __init__(
-            self, problems, qids, tokenizer, source_len, target_len, args, test_le=None
+        self, problems, qids, tokenizer, source_len, target_len, args, test_le=None
     ):
         self.tokenizer = tokenizer
-        self.data = {qid: problems[qid] for qid in qids}
+        self.data = {qid : problems[qid] for qid in qids}
         self.source_len = source_len
         self.summ_len = target_len
         self.target_text = []
         self.source_text = []
         if test_le is not None:
-            test_le_data = json.load(open(test_le))["preds"]
+            test_le_data =json.load(open(test_le))["preds"]
         else:
             test_le_data = None
         idx = 0
@@ -127,7 +137,7 @@ class ScienceQADatasetStd(Dataset):
         source_ids = source["input_ids"].squeeze()
         source_mask = source["attention_mask"].squeeze()
         target_ids = target["input_ids"].squeeze().tolist()
-
+        
         return {
             "input_ids": source_ids,
             "attention_mask": source_mask,
@@ -144,7 +154,7 @@ class ScienceQADatasetImg(Dataset):
     """
 
     def __init__(
-            self, problems, qids, name_maps, tokenizer, source_len, target_len, args, image_features, test_le=None
+        self, problems, qids, name_maps, tokenizer, source_len, target_len, args, image_features, test_le=None
     ):
         """
         Initializes a Dataset class
@@ -158,14 +168,14 @@ class ScienceQADatasetImg(Dataset):
             target_text (str): column name of target text
         """
         self.tokenizer = tokenizer
-        self.data = {qid: problems[qid] for qid in qids}
+        self.data = {qid : problems[qid] for qid in qids}
         self.source_len = source_len
         self.summ_len = target_len
         self.target_text = []
         self.source_text = []
         self.image_ids = []
         if test_le is not None:
-            test_le_data = json.load(open(test_le))["preds"]
+            test_le_data =json.load(open(test_le))["preds"]
         else:
             test_le_data = None
         idx = 0
@@ -178,13 +188,17 @@ class ScienceQADatasetImg(Dataset):
             prompt, target = build_train_pair(problems, qid, args, curr_le_data)
             self.target_text.append(target)
             self.source_text.append(prompt)
+            print('target: ', target)
+            print()
+            print('prompt: ', prompt)
+            quit()
             if str(qid) in name_maps:
                 i_vectors = image_features[int(name_maps[str(qid)])]
                 self.image_ids.append(i_vectors)
             else:
                 shape = img_shape[args.img_type]
                 self.image_ids.append(np.zeros(shape))
-
+    
     def __len__(self):
         """returns the length of dataframe"""
 
@@ -200,6 +214,63 @@ class ScienceQADatasetImg(Dataset):
         # cleaning data so as to ensure data is in string type
         source_text = " ".join(source_text.split())
         target_text = " ".join(target_text.split())
+
+        source = self.tokenizer.batch_encode_plus(
+            [source_text],
+            max_length=self.source_len,
+            pad_to_max_length=True,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt",
+        )
+        target = self.tokenizer.batch_encode_plus(
+            [target_text],
+            max_length=self.summ_len,
+            pad_to_max_length=True,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt",
+        )
+        source_ids = source["input_ids"].squeeze()
+        source_mask = source["attention_mask"].squeeze()
+        target_ids = target["input_ids"].squeeze().tolist()
+
+        image_ids = torch.tensor(image_ids).squeeze()
+        
+        return {
+            "input_ids": source_ids,
+            "attention_mask": source_mask,
+            "image_ids": image_ids,
+            "labels": target_ids,
+        }
+
+class AmazonQADatasetImg(Dataset):
+    def __init__(
+            self,df,tokenizer, source_len, target_len, args, image_features, test_le=None
+    ):
+        self.tokenizer = tokenizer
+        self.df = df
+        self.source_len = source_len
+        self.summ_len = target_len
+        self.target_text = []
+        self.source_text = []
+        self.image_ids = []
+        for i in range(len(df)):
+            self.target_text.append(df['targets'][i])
+            self.source_text.append(df['sources'][i])
+            img_id_a = df['img_id_a'][i]
+            img_id_b = df['img_id_b'][i]
+            img_feature_a = image_features[img_id_a]
+            img_feature_b = image_features[img_id_b]
+            img_feature = np.concatenate((img_feature_a,img_feature_b),axis=2)[0,:,:]
+            self.image_ids.append(img_feature)
+
+    def __len__(self):
+        return len(self.target_text)
+    def __getitem__(self, index):
+        source_text = str(self.source_text[index])
+        target_text = str(self.target_text[index])
+        image_ids = self.image_ids[index]
 
         source = self.tokenizer.batch_encode_plus(
             [source_text],

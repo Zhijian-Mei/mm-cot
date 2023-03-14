@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=0,1 python main.py \
     --final_eval --prompt_format QCM-LE --output_dir test
 
 ## answer inference
-#CUDA_VISIBLE_DEVICES=0,1 python main.py \
+#CUDA_VISIBLE_DEVICES=0,1 python main1.py \
 #    --model allenai/unifiedqa-t5-base \
 #    --user_msg answer --img_type detr \
 #    --bs 8 --eval_bs 4 --eval_acc 10 --output_len 64 \
