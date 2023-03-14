@@ -66,24 +66,11 @@ def load_data_img(args):
     return problems, qids, name_maps, image_features
 
 def load_amazon_data_img(args):
-    df = pd.read_csv(os.path.join(args.data_root, 'TOTAL_typicality_result.csv'))
-    img_features = np.load('vision_features/amazon_img_detr.npy')
-    source_text=[]
-    target_text=[]
-    for i in range(len(df)):
-        item_a_id = df['item_a_id'][i]
-        item_b_id = df['item_b_id'][i]
-        for j in range(1,4):
-            img_id_a = f'{item_a_id}_{j}'
-            for k in range(1,4):
-                img_id_b = f'{item_b_id}_{k}'
-                if img_id_a in img_features and img_id_b in img_features:
-                    target_text.append(df['assertion'][i])
-                    
+    df = pd.read_csv(os.path.join('data/amazon_train_samples_img.csv'))
+    img_features = np.load('vision_features/amazon_img_detr.npy',allow_pickle=True).item()
 
-    train_df = pd.DataFrame()
+    return df,img_features
 
-    train_df['targets'] = df['assertion']
 
 
 
@@ -258,8 +245,28 @@ class ScienceQADatasetImg(Dataset):
         }
 
 class AmazonQADatasetImg(Dataset):
-    def __init__(self):
-        pass
+    def __init__(
+            self,df,tokenizer, source_len, target_len, args, image_features, test_le=None
+    ):
+        self.tokenizer = tokenizer
+        self.df = df
+        self.source_len = source_len
+        self.summ_len = target_len
+        self.target_text = []
+        self.source_text = []
+        self.image_ids = []
+        for i in range(len(df)):
+            self.target_text.append(df['targets'][i])
+            self.source_text.append(df['sources'][i])
+            img_id_a = df['img_id_a'][i]
+            img_id_b = df['img_id_b'][i]
+            img_feature_a = image_features[img_id_a]
+            img_feature_b = image_features[img_id_b]
+            print(img_feature_a.shape)
+            print(img_feature_b.shape)
+            quit()
+
+
     def __len__(self):
         pass
     def __getitem__(self, index):
