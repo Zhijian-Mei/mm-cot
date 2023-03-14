@@ -84,7 +84,6 @@ def T5Trainer(
     if args.img_type is not None:
         patch_size = img_shape[args.img_type]
         model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx, save_dir=save_dir) 
-        name_maps = dataframe['name_maps'] 
         image_features = dataframe['image_features']
         train_set = AmazonQADatasetImg(
             df,
