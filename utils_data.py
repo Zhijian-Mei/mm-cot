@@ -262,8 +262,8 @@ class AmazonQADatasetImg(Dataset):
             img_id_b = df['img_id_b'][i]
             img_feature_a = image_features[img_id_a]
             img_feature_b = image_features[img_id_b]
-            print(img_feature_a[0,:,:].shape)
-            print(img_feature_b.shape)
+            img_feature = np.concatenate((img_feature_a,img_feature_b),axis=2)
+            print(img_feature.shape)
             quit()
 
 
