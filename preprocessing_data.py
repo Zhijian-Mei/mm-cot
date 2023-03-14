@@ -25,7 +25,6 @@ for i in trange(len(df)):
                 img_id_bs.append(img_id_b)
 
 train_df = pd.DataFrame()
-print(target_text)
 train_df['targets'] = target_text
 train_df['sources'] = source_text
 train_df['img_id_a'] = img_id_as
