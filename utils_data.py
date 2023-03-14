@@ -161,7 +161,7 @@ class ScienceQADatasetImg(Dataset):
         self.target_text = []
         self.source_text = []
         self.image_ids = []
-        print(qids)
+        print(image_features)
         quit()
         if test_le is not None:
             test_le_data =json.load(open(test_le))["preds"]
