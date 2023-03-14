@@ -372,7 +372,7 @@ if __name__ == '__main__':
 
     if args.img_type is not None:
         problems, qids, name_maps, image_features = load_data_img(args)  # probelms, test question ids, shot example ids
-        print(problems[0])
+        print(problems)
         quit()
         dataframe = {'problems':problems, 'qids':qids, 'name_maps': name_maps, 'image_features': image_features}
     else:
