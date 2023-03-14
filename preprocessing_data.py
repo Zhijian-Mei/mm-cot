@@ -2,8 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-
-
+from tqdm import trange
 
 df = pd.read_csv(os.path.join('../../FolkScope', 'TOTAL_typicality_result.csv'))
 img_features = np.load('vision_features/amazon_img_detr.npy')
@@ -11,7 +10,7 @@ source_text = []
 target_text = []
 img_id_as = []
 img_id_bs = []
-for i in range(len(df)):
+for i in trange(len(df)):
     item_a_id = df['item_a_id'][i]
     item_b_id = df['item_b_id'][i]
     for j in range(1, 4):
