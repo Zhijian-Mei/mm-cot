@@ -6,16 +6,15 @@ import re
 import json
 import argparse
 import random
-from transformers import T5Tokenizer, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, \
-    T5ForConditionalGeneration
+from transformers import T5Tokenizer, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, T5ForConditionalGeneration
 from model import T5ForConditionalGeneration, T5ForMultimodalGeneration
-from utils_data import img_shape, load_data_std, load_data_img, ScienceQADatasetStd, ScienceQADatasetImg
+from utils_data import img_shape, load_data_std, load_data_img, ScienceQADatasetStd, ScienceQADatasetImg, \
+    load_amazon_data_img, AmazonQADatasetImg
 from utils_prompt import *
 from utils_evaluate import get_scores
 from rich.table import Column, Table
 from rich import box
 from rich.console import Console
-
 console = Console(record=True)
 from torch import cuda
 import nltk
@@ -38,12 +37,11 @@ def parse_args():
     parser.add_argument('--train_split', type=str, default='train', choices=['train', 'trainval', 'minitrain'])
     parser.add_argument('--val_split', type=str, default='val', choices=['test', 'val', 'minival'])
     parser.add_argument('--test_split', type=str, default='test', choices=['test', 'minitest'])
-
+    
     parser.add_argument('--use_generate', action='store_true', help='only for baseline to improve inference speed')
     parser.add_argument('--final_eval', action='store_true', help='only evaluate the model at the final epoch')
     parser.add_argument('--user_msg', type=str, default="baseline", help='experiment type in the save_dir')
-    parser.add_argument('--img_type', type=str, default=None, choices=['detr', 'clip', 'resnet'],
-                        help='type of image features')
+    parser.add_argument('--img_type', type=str, default=None, choices=['detr', 'clip', 'resnet'], help='type of image features')
     parser.add_argument('--eval_le', type=str, default=None, help='generated rationale for the dev set')
     parser.add_argument('--test_le', type=str, default=None, help='generated rationale for the test set')
     parser.add_argument('--evaluate_dir', type=str, default=None, help='the directory of model for evaluation')
@@ -55,15 +53,14 @@ def parse_args():
 
     args = parser.parse_args()
     return args
-
-
+        
 def T5Trainer(
-        dataframe, args,
+    dataframe, args,
 ):
     torch.manual_seed(args.seed)  # pytorch random seed
     np.random.seed(args.seed)  # numpy random seed
     torch.backends.cudnn.deterministic = True
-
+    
     if args.evaluate_dir is not None:
         args.model = args.evaluate_dir
 
@@ -71,16 +68,13 @@ def T5Trainer(
 
     console.log(f"""[Model]: Loading {args.model}...\n""")
     console.log(f"[Data]: Reading data...\n")
-    problems = dataframe['problems']
-    qids = dataframe['qids']
-    train_qids = qids['train']
-    test_qids = qids['test']
-    val_qids = qids['val']
+    df = dataframe['df']
 
+    
     if args.evaluate_dir is not None:
         save_dir = args.evaluate_dir
     else:
-        model_name = args.model.replace("/", "-")
+        model_name = args.model.replace("/","-")
         gpu_count = torch.cuda.device_count()
         save_dir = f"{args.output_dir}/{args.user_msg}_{model_name}_{args.img_type}_{args.prompt_format}_lr{args.lr}_bs{args.bs * gpu_count}_op{args.output_len}_ep{args.epoch}"
         if not os.path.exists(save_dir):
@@ -89,14 +83,10 @@ def T5Trainer(
     padding_idx = tokenizer._convert_token_to_id(tokenizer.pad_token)
     if args.img_type is not None:
         patch_size = img_shape[args.img_type]
-        model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx,
-                                                          save_dir=save_dir)
-        name_maps = dataframe['name_maps']
+        model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx, save_dir=save_dir)
         image_features = dataframe['image_features']
-        train_set = ScienceQADatasetImg(
-            problems,
-            train_qids,
-            name_maps,
+        train_set = AmazonQADatasetImg(
+            df,
             tokenizer,
             args.input_len,
             args.output_len,
@@ -128,7 +118,7 @@ def T5Trainer(
             args.test_le,
         )
     else:
-        model = T5ForConditionalGeneration.from_pretrained(args.model)
+        model = T5ForConditionalGeneration.from_pretrained(args.model) 
         train_set = ScienceQADatasetStd(
             problems,
             train_qids,
@@ -146,7 +136,7 @@ def T5Trainer(
             args,
             args.eval_le,
         )
-
+        
         test_set = ScienceQADatasetStd(
             problems,
             test_qids,
@@ -159,19 +149,17 @@ def T5Trainer(
 
     datacollator = DataCollatorForSeq2Seq(tokenizer)
     print("model parameters: ", model.num_parameters())
-
     def extract_ans(ans):
         pattern = re.compile(r'The answer is \(([A-Z])\)')
         res = pattern.findall(ans)
-
+        
         if len(res) == 1:
             answer = res[0]  # 'A', 'B', ...
         else:
-            answer = "FAILED"
-        return answer
+            answer = "FAILED" 
+        return answer  
 
-        # accuracy for answer inference
-
+    # accuracy for answer inference
     def compute_metrics_acc(eval_preds):
         if args.use_generate:
             preds, targets = eval_preds
@@ -191,12 +179,11 @@ def T5Trainer(
             extract_pred = extract_ans(pred)
             best_option = extract_pred
             if reference == best_option:
-                correct += 1
-        return {'accuracy': 1.0 * correct / len(targets)}
-
+                correct +=1 
+        return {'accuracy': 1.0*correct/len(targets)}
+    
     # rougel for rationale generation
     metric = evaluate.load("rouge")
-
     def postprocess_text(preds, labels):
         preds = [pred.strip() for pred in preds]
         labels = [label.strip() for label in labels]
@@ -233,8 +220,8 @@ def T5Trainer(
             evaluation_strategy="no",
             logging_strategy="steps",
             save_strategy="epoch",
-            save_total_limit=2,
-            learning_rate=args.lr,
+            save_total_limit = 2,
+            learning_rate= args.lr,
             eval_accumulation_steps=args.eval_acc,
             per_device_train_batch_size=args.bs,
             per_device_eval_batch_size=args.eval_bs,
@@ -252,8 +239,8 @@ def T5Trainer(
             evaluation_strategy="epoch",
             logging_strategy="steps",
             save_strategy="epoch",
-            save_total_limit=2,
-            learning_rate=args.lr,
+            save_total_limit = 2,
+            learning_rate= args.lr,
             eval_accumulation_steps=args.eval_acc,
             per_device_train_batch_size=args.bs,
             per_device_eval_batch_size=args.eval_bs,
@@ -272,18 +259,18 @@ def T5Trainer(
         eval_dataset=eval_set,
         data_collator=datacollator,
         tokenizer=tokenizer,
-        compute_metrics=compute_metrics_acc if args.prompt_format != "QCM-LE" else compute_metrics_rougel
+        compute_metrics = compute_metrics_acc if args.prompt_format != "QCM-LE" else compute_metrics_rougel
     )
 
     if args.evaluate_dir is None:
         trainer.train()
         trainer.save_model(save_dir)
-
-    metrics = trainer.evaluate(eval_dataset=test_set)
+        
+    metrics = trainer.evaluate(eval_dataset = test_set)
     trainer.log_metrics("test", metrics)
     trainer.save_metrics("test", metrics)
 
-    predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len)
+    predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len) 
     if trainer.is_world_process_zero():
         if args.use_generate:
             preds, targets = predict_results.predictions, predict_results.label_ids
@@ -302,7 +289,7 @@ def T5Trainer(
         results_ans = {}
         results_rationale = {}
         results_reference = {}
-
+        
         num_fail = 0
         for idx, qid in enumerate(test_qids):
             pred = preds[int(idx)]
@@ -312,31 +299,30 @@ def T5Trainer(
                 if extract_pred in args.options:
                     extract_pred = args.options.index(extract_pred)
                 else:
-                    extract_pred = random.choice(range(0, len(args.options)))
+                    extract_pred = random.choice(range(0,len(args.options)))
             else:
                 num_fail += 1
-                extract_pred = random.choice(range(len(args.options)))  # random choose one option
+                extract_pred = random.choice(range(len(args.options))) # random choose one option
             results_ans[str(qid)] = extract_pred
             results_rationale[str(qid)] = pred
             results_reference[str(qid)] = ref
 
-        scores = get_scores(results_ans, results_rationale, results_reference,
-                            os.path.join(args.data_root, "scienceqa/problems.json"))
+        scores = get_scores(results_ans, results_rationale, results_reference, os.path.join(args.data_root, "scienceqa/problems.json"))
         preds = [pred.strip() for pred in preds]
         output_data = {
-            "num_fail": num_fail,
-            "scores": scores,
-            "preds": preds,
-            "labels": targets}
-        output_prediction_file = os.path.join(save_dir, "predictions_ans_test.json")
+                "num_fail": num_fail,
+                "scores": scores,
+                "preds": preds,
+                 "labels": targets}
+        output_prediction_file = os.path.join(save_dir,"predictions_ans_test.json")
         with open(output_prediction_file, "w") as writer:
             writer.write(json.dumps(output_data, indent=4))
-
+    
     # generate the rationale for the eval set
     if args.prompt_format == "QCM-LE":
         torch.cuda.empty_cache()
         del predict_results, preds, targets
-        predict_results = trainer.predict(test_dataset=eval_set, max_length=args.output_len)
+        predict_results = trainer.predict(test_dataset=eval_set, max_length=args.output_len) 
         if trainer.is_world_process_zero():
             if args.use_generate:
                 preds, targets = predict_results.predictions, predict_results.label_ids
@@ -353,11 +339,11 @@ def T5Trainer(
             )
             preds = [pred.strip() for pred in preds]
             output_data = {"preds": preds,
-                           "labels": targets}
-            output_prediction_file = os.path.join(save_dir, "predictions_ans_eval.json")
+                 "labels": targets}
+            output_prediction_file = os.path.join(save_dir,"predictions_ans_eval.json")
             with open(output_prediction_file, "w") as writer:
                 writer.write(json.dumps(output_data, indent=4))
-
+    
 
 if __name__ == '__main__':
 
@@ -370,25 +356,25 @@ if __name__ == '__main__':
         pad_edge=False,
         box=box.ASCII,
     )
-
+    
     args = parse_args()
-    print("args", args)
+    print("args",args)
     print('====Input Arguments====')
     print(json.dumps(vars(args), indent=2, sort_keys=False))
 
     random.seed(args.seed)
-
+    
     if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+            os.mkdir(args.output_dir)
 
     if args.img_type is not None:
-        problems, qids, name_maps, image_features = load_data_img(args)  # probelms, test question ids, shot example ids
-        dataframe = {'problems': problems, 'qids': qids, 'name_maps': name_maps, 'image_features': image_features}
+        df, image_features = load_amazon_data_img(args)  # probelms, test question ids, shot example ids
+        dataframe = {'df':df,'image_features': image_features}
     else:
         problems, qids = load_data_std(args)  # probelms, test question ids, shot example ids
-        dataframe = {'problems': problems, 'qids': qids}
+        dataframe = {'problems':problems, 'qids':qids}
 
     T5Trainer(
         dataframe=dataframe,
-        args=args
+        args = args
     )
