@@ -84,7 +84,7 @@ def T5Trainer(
     padding_idx = tokenizer._convert_token_to_id(tokenizer.pad_token)
     if args.img_type is not None:
         patch_size = img_shape[args.img_type]
-        model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx, save_dir=save_dir)
+        model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx, save_dir=save_dir,ignore_mismatched_sizes=True)
         image_features = dataframe['image_features']
         train, test = train_test_split(df, test_size=0.3,random_state=args.seed)
         eval, test = train_test_split(test, test_size=0.5,random_state=args.seed)
