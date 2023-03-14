@@ -8,7 +8,7 @@ import argparse
 import random
 from transformers import T5Tokenizer, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, T5ForConditionalGeneration
 from model import T5ForConditionalGeneration, T5ForMultimodalGeneration
-from utils_data import img_shape, load_data_std, load_data_img, ScienceQADatasetStd, ScienceQADatasetImg
+from utils_data import img_shape, load_data_std, load_data_img, ScienceQADatasetStd, ScienceQADatasetImg,load_amazon_data_img
 from utils_prompt import *
 from utils_evaluate import get_scores
 from rich.table import Column, Table
@@ -373,7 +373,7 @@ if __name__ == '__main__':
             os.mkdir(args.output_dir)
 
     if args.img_type is not None:
-        problems, qids, name_maps, image_features = load_data_img(args)  # probelms, test question ids, shot example ids
+        problems, qids, name_maps, image_features = load_amazon_data_img(args)  # probelms, test question ids, shot example ids
         dataframe = {'problems':problems, 'qids':qids, 'name_maps': name_maps, 'image_features': image_features}
     else:
         problems, qids = load_data_std(args)  # probelms, test question ids, shot example ids

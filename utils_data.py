@@ -1,4 +1,7 @@
 import os
+from abc import ABC
+
+import pandas as pd
 from torch.utils.data import Dataset
 import os
 import json
@@ -61,6 +64,12 @@ def load_data_img(args):
 
     qids = {'train': train_qids, 'val':val_qids,'test':test_qids}
     return problems, qids, name_maps, image_features
+
+def load_amazon_data_img(args):
+    df = pd.read_csv(os.path.join(args.data_root, 'TOTAL_typicality_result.csv'))
+    print(df)
+    quit()
+
 
 class ScienceQADatasetStd(Dataset):
     """
@@ -230,3 +239,11 @@ class ScienceQADatasetImg(Dataset):
             "image_ids": image_ids,
             "labels": target_ids,
         }
+
+class AmazonQADatasetImg(Dataset):
+    def __init__(self):
+
+    def __len__(self):
+        pass
+    def __getitem__(self, index):
+        pass
