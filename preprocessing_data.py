@@ -6,6 +6,8 @@ from tqdm import trange
 
 df = pd.read_csv(os.path.join('../../FolkScope', 'TOTAL_typicality_result.csv'))
 img_features = np.load('vision_features/amazon_img_detr.npy',allow_pickle=True)
+print(img_features)
+quit()
 source_text = []
 target_text = []
 img_id_as = []
