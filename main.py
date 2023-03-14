@@ -19,6 +19,7 @@ console = Console(record=True)
 from torch import cuda
 import nltk
 import evaluate
+from sklearn.model_selection import train_test_split
 
 
 def parse_args():
@@ -85,67 +86,61 @@ def T5Trainer(
         patch_size = img_shape[args.img_type]
         model = T5ForMultimodalGeneration.from_pretrained(args.model, patch_size=patch_size, padding_idx=padding_idx, save_dir=save_dir)
         image_features = dataframe['image_features']
+        train, test = train_test_split(df, test_size=0.3,random_state=args.seed)
+        eval, test = train_test_split(test, test_size=0.5,random_state=args.seed)
         train_set = AmazonQADatasetImg(
-            df,
+            train,
             tokenizer,
             args.input_len,
             args.output_len,
             args,
             image_features,
         )
-        print(train_set[0]['image_ids'].shape)
-        quit()
-        eval_set = ScienceQADatasetImg(
-            problems,
-            val_qids,
-            name_maps,
+        eval_set = AmazonQADatasetImg(
+            eval,
             tokenizer,
             args.input_len,
             args.output_len,
             args,
             image_features,
-            args.eval_le,
         )
-        test_set = ScienceQADatasetImg(
-            problems,
-            test_qids,
-            name_maps,
+        test_set = AmazonQADatasetImg(
+            test,
             tokenizer,
             args.input_len,
             args.output_len,
             args,
             image_features,
-            args.test_le,
         )
-    else:
-        model = T5ForConditionalGeneration.from_pretrained(args.model) 
-        train_set = ScienceQADatasetStd(
-            problems,
-            train_qids,
-            tokenizer,
-            args.input_len,
-            args.output_len,
-            args,
-        )
-        eval_set = ScienceQADatasetStd(
-            problems,
-            val_qids,
-            tokenizer,
-            args.input_len,
-            args.output_len,
-            args,
-            args.eval_le,
-        )
-        
-        test_set = ScienceQADatasetStd(
-            problems,
-            test_qids,
-            tokenizer,
-            args.input_len,
-            args.output_len,
-            args,
-            args.test_le,
-        )
+    # else:
+    #     model = T5ForConditionalGeneration.from_pretrained(args.model)
+    #     train_set = ScienceQADatasetStd(
+    #         problems,
+    #         train_qids,
+    #         tokenizer,
+    #         args.input_len,
+    #         args.output_len,
+    #         args,
+    #     )
+    #     eval_set = ScienceQADatasetStd(
+    #         problems,
+    #         val_qids,
+    #         tokenizer,
+    #         args.input_len,
+    #         args.output_len,
+    #         args,
+    #         args.eval_le,
+    #     )
+    #
+    #     test_set = ScienceQADatasetStd(
+    #         problems,
+    #         test_qids,
+    #         tokenizer,
+    #         args.input_len,
+    #         args.output_len,
+    #         args,
+    #         args.test_le,
+    #     )
 
     datacollator = DataCollatorForSeq2Seq(tokenizer)
     print("model parameters: ", model.num_parameters())

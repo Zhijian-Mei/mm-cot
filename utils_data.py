@@ -67,7 +67,7 @@ def load_data_img(args):
     qids = {'train': train_qids, 'val':val_qids,'test':test_qids}
     return problems, qids, name_maps, image_features
 
-def load_amazon_data_img(args):
+def load_amazon_data_img(args,train=False):
     df = pd.read_csv(os.path.join('data/amazon_train_samples_img.csv'))
     img_features = np.load('vision_features/amazon_img_detr.npy',allow_pickle=True).item()
 
