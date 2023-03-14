@@ -30,4 +30,4 @@ train_df['sources'] = source_text
 train_df['img_id_a'] = img_id_as
 train_df['img_id_b'] = img_id_bs
 
-pd.save_csv('amazon_train_samples_img.csv',train_df)
+pd.to_csv('amazon_train_samples_img.csv',train_df,index=False)
