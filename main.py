@@ -103,7 +103,7 @@ def T5Trainer(
             args,
             image_features,
         )
-        print(train_set[0])
+        print(train_set[0]['image_ids'].shape)
         quit()
         eval_set = ScienceQADatasetImg(
             problems,
