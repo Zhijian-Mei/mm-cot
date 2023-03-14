@@ -36,6 +36,7 @@ class T5ForMultimodalGeneration(T5ForConditionalGeneration):
 
         self.shared = nn.Embedding(config.vocab_size, config.d_model)
         self.patch_num, self.patch_dim = patch_size
+        self.patch_dim = self.patch_dim*2
 
         self.image_dense = nn.Linear(self.patch_dim, config.d_model)
         self.mha_layer = torch.nn.MultiheadAttention(embed_dim=config.hidden_size, kdim=config.hidden_size, vdim=config.hidden_size, num_heads=1, batch_first=True)
