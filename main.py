@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, default='experiments')
     parser.add_argument('--model', type=str, default='allenai/unifiedqa-t5-base')
     parser.add_argument('--options', type=list, default=["A", "B", "C", "D", "E"])
-    parser.add_argument('--epoch', type=int, default=20)
+    parser.add_argument('--epoch', type=int, default=1)
     parser.add_argument('--lr', type=float, default=5e-5)
     parser.add_argument('--bs', type=int, default=16)
     parser.add_argument('--input_len', type=int, default=512)
@@ -99,7 +99,6 @@ def T5Trainer(
             args,
             image_features,
         )
-        print(len(train_set))
         eval_set = AmazonQADatasetImg(
             eval,
             tokenizer,
