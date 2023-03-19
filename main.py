@@ -264,13 +264,11 @@ def T5Trainer(
         trainer.train()
         trainer.save_model(save_dir)
         
-    metrics = trainer.evaluate(eval_dataset = test_set)
-    trainer.log_metrics("test", metrics)
-    trainer.save_metrics("test", metrics)
+    metrics = trainer.evaluate(eval_dataset = eval_set)
+    trainer.log_metrics("eval", metrics)
+    trainer.save_metrics("eval", metrics)
 
     predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len)
-    print(predict_results)
-    quit()
     if trainer.is_world_process_zero():
         if args.use_generate:
             preds, targets = predict_results.predictions, predict_results.label_ids
@@ -285,7 +283,8 @@ def T5Trainer(
         targets = tokenizer.batch_decode(
             targets, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
-
+        print(preds)
+        quit()
         results_ans = {}
         results_rationale = {}
         results_reference = {}
