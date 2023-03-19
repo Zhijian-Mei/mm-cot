@@ -264,9 +264,9 @@ def T5Trainer(
         trainer.train()
         trainer.save_model(save_dir)
         
-    metrics = trainer.evaluate(eval_dataset = eval_set)
-    trainer.log_metrics("eval", metrics)
-    trainer.save_metrics("eval", metrics)
+    metrics = trainer.evaluate(eval_dataset = test_set)
+    trainer.log_metrics("test", metrics)
+    trainer.save_metrics("test", metrics)
 
     predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len)
     if trainer.is_world_process_zero():
@@ -283,66 +283,67 @@ def T5Trainer(
         targets = tokenizer.batch_decode(
             targets, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
-        print(preds)
-        quit()
-        results_ans = {}
-        results_rationale = {}
-        results_reference = {}
-        
-        num_fail = 0
-        for idx, qid in enumerate(test_qids):
-            pred = preds[int(idx)]
-            ref = targets[int(idx)]
-            extract_pred = extract_ans(pred)
-            if extract_pred != "FAILED":
-                if extract_pred in args.options:
-                    extract_pred = args.options.index(extract_pred)
-                else:
-                    extract_pred = random.choice(range(0,len(args.options)))
-            else:
-                num_fail += 1
-                extract_pred = random.choice(range(len(args.options))) # random choose one option
-            results_ans[str(qid)] = extract_pred
-            results_rationale[str(qid)] = pred
-            results_reference[str(qid)] = ref
 
-        scores = get_scores(results_ans, results_rationale, results_reference, os.path.join(args.data_root, "scienceqa/problems.json"))
-        preds = [pred.strip() for pred in preds]
-        output_data = {
-                "num_fail": num_fail,
-                "scores": scores,
-                "preds": preds,
-                 "labels": targets}
-        output_prediction_file = os.path.join(save_dir,"predictions_ans_test.json")
-        with open(output_prediction_file, "w") as writer:
-            writer.write(json.dumps(output_data, indent=4))
-    
-    # generate the rationale for the eval set
-    if args.prompt_format == "QCM-LE":
-        torch.cuda.empty_cache()
-        del predict_results, preds, targets
-        predict_results = trainer.predict(test_dataset=eval_set, max_length=args.output_len) 
-        if trainer.is_world_process_zero():
-            if args.use_generate:
-                preds, targets = predict_results.predictions, predict_results.label_ids
-            else:
-                preds = predict_results.predictions[0]
-                targets = predict_results.label_ids
-                preds = preds.argmax(axis=2)
 
-            preds = tokenizer.batch_decode(
-                preds, skip_special_tokens=True, clean_up_tokenization_spaces=True
-            )
-            targets = tokenizer.batch_decode(
-                targets, skip_special_tokens=True, clean_up_tokenization_spaces=True
-            )
-            preds = [pred.strip() for pred in preds]
-            output_data = {"preds": preds,
-                 "labels": targets}
-            output_prediction_file = os.path.join(save_dir,"predictions_ans_eval.json")
-            with open(output_prediction_file, "w") as writer:
-                writer.write(json.dumps(output_data, indent=4))
-    
+
+    #     results_ans = {}
+    #     results_rationale = {}
+    #     results_reference = {}
+    #
+    #     num_fail = 0
+    #     for idx, qid in enumerate(test_qids):
+    #         pred = preds[int(idx)]
+    #         ref = targets[int(idx)]
+    #         extract_pred = extract_ans(pred)
+    #         if extract_pred != "FAILED":
+    #             if extract_pred in args.options:
+    #                 extract_pred = args.options.index(extract_pred)
+    #             else:
+    #                 extract_pred = random.choice(range(0,len(args.options)))
+    #         else:
+    #             num_fail += 1
+    #             extract_pred = random.choice(range(len(args.options))) # random choose one option
+    #         results_ans[str(qid)] = extract_pred
+    #         results_rationale[str(qid)] = pred
+    #         results_reference[str(qid)] = ref
+    #
+    #     scores = get_scores(results_ans, results_rationale, results_reference, os.path.join(args.data_root, "scienceqa/problems.json"))
+    #     preds = [pred.strip() for pred in preds]
+    #     output_data = {
+    #             "num_fail": num_fail,
+    #             "scores": scores,
+    #             "preds": preds,
+    #              "labels": targets}
+    #     output_prediction_file = os.path.join(save_dir,"predictions_ans_test.json")
+    #     with open(output_prediction_file, "w") as writer:
+    #         writer.write(json.dumps(output_data, indent=4))
+    #
+    # # generate the rationale for the eval set
+    # if args.prompt_format == "QCM-LE":
+    #     torch.cuda.empty_cache()
+    #     del predict_results, preds, targets
+    #     predict_results = trainer.predict(test_dataset=eval_set, max_length=args.output_len)
+    #     if trainer.is_world_process_zero():
+    #         if args.use_generate:
+    #             preds, targets = predict_results.predictions, predict_results.label_ids
+    #         else:
+    #             preds = predict_results.predictions[0]
+    #             targets = predict_results.label_ids
+    #             preds = preds.argmax(axis=2)
+    #
+    #         preds = tokenizer.batch_decode(
+    #             preds, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    #         )
+    #         targets = tokenizer.batch_decode(
+    #             targets, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    #         )
+    #         preds = [pred.strip() for pred in preds]
+    #         output_data = {"preds": preds,
+    #              "labels": targets}
+    #         output_prediction_file = os.path.join(save_dir,"predictions_ans_eval.json")
+    #         with open(output_prediction_file, "w") as writer:
+    #             writer.write(json.dumps(output_data, indent=4))
+    #
 
 if __name__ == '__main__':
 
