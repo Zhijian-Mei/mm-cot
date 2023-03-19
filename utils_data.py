@@ -259,6 +259,8 @@ class AmazonQADatasetImg(Dataset):
         self.image_ids = []
         for i in trange(len(df)):
             self.target_text.append(df['targets'][i])
+            print(self.target_text)
+            quit()
             self.source_text.append(df['sources'][i])
             img_id_a = df['img_id_a'][i]
             img_id_b = df['img_id_b'][i]
