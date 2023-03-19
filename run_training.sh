@@ -3,7 +3,7 @@ CUDA_VISIBLE_DEVICES=0,1 python main.py \
     --model models/rationale \
     --user_msg rationale --img_type detr \
     --data_root ../../FolkScope \
-    --bs 2 --eval_bs 2 --eval_acc 10 --output_len 512 \
+    --bs 2 --eval_bs 1 --eval_acc 10 --output_len 512 \
     --final_eval --prompt_format QCM-LE --output_dir test
 
 ## answer inference
