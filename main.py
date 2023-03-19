@@ -99,6 +99,7 @@ def T5Trainer(
             args,
             image_features,
         )
+        print(len(train_set))
         eval_set = AmazonQADatasetImg(
             eval,
             tokenizer,
