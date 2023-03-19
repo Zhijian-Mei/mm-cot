@@ -269,7 +269,9 @@ def T5Trainer(
     trainer.log_metrics("test", metrics)
     trainer.save_metrics("test", metrics)
 
-    predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len) 
+    predict_results = trainer.predict(test_dataset=test_set, max_length=args.output_len)
+    print(predict_results)
+    quit()
     if trainer.is_world_process_zero():
         if args.use_generate:
             preds, targets = predict_results.predictions, predict_results.label_ids
