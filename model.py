@@ -117,17 +117,11 @@ class T5ForMultimodalGeneration(T5ForConditionalGeneration):
         hidden_states = encoder_outputs[0]
         
         image_embedding = self.image_dense(image_ids)
-        print(image_embedding.shape)
         image_att, _ = self.mha_layer(hidden_states, image_embedding, image_embedding)
-        print(image_att.shape)
-        print(image_att)
         merge = torch.cat([hidden_states, image_att], dim=-1)
-        print(merge.shape)
         gate = self.sigmoid(self.gate_dense(merge))
-        print(gate.shape)
         hidden_states = (1 - gate) * hidden_states + gate * image_att
-        quit()
-
+        
         if self.model_parallel:
             torch.cuda.set_device(self.decoder.first_device)
 
