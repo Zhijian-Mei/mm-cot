@@ -116,16 +116,19 @@ class T5ForMultimodalGeneration(T5ForConditionalGeneration):
 
         hidden_states = encoder_outputs[0]
 
-        print(1,hidden_states.shape)
-        print(2,image_ids.shape)
+        # project the detr feature dimension to model dimension. [B,100,512] >> [B,100,768]
         image_embedding = self.image_dense(image_ids)
-        print(3,image_embedding.shape)
+
+        # MHAttention layer with head = 1, query is the hidden_states, key and value is the image_embedding. [B,100,768] >> [B,512,768]
         image_att, _ = self.mha_layer(hidden_states, image_embedding, image_embedding)
-        print(4,image_att.shape)
+
+        # concatenate hidden states and image attention
         merge = torch.cat([hidden_states, image_att], dim=-1)
-        print(5,merge.shape)
+
+        # project down the concatenated tensor to model dimension and do the sigmoid to simulate a gate
         gate = self.sigmoid(self.gate_dense(merge))
-        print(6, gate.shape)
+
+        # combine the image feature by gate
         hidden_states = (1 - gate) * hidden_states + gate * image_att
         
         if self.model_parallel:
